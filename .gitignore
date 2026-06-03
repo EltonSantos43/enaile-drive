@@ -1,0 +1,20 @@
+# Binários compilados
+/dist/
+/bin/
+enaile-drive
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Banco de dados local (SQLite)
+*.db
+*.db-journal
+
+# Variáveis de ambiente e segredos
+.env
+.env.local
+
+# Logs
+*.log
