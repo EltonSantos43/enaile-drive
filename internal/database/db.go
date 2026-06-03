@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/seu-usuario/enaile-drive/internal/models"
+	"github.com/elton-santos/enaile-drive/internal/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"log"

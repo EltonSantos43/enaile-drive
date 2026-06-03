@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/seu-usuario/enaile-drive/internal/database"
-	"github.com/seu-usuario/enaile-drive/internal/models"
+	"github.com/elton-santos/enaile-drive/internal/database"
+	"github.com/elton-santos/enaile-drive/internal/models"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

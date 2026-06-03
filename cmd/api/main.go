@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/seu-usuario/enaile-drive/internal/database"
-	"github.com/seu-usuario/enaile-drive/internal/handlers"
+	"github.com/elton-santos/enaile-drive/internal/database"
+	"github.com/elton-santos/enaile-drive/internal/handlers"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"log"
