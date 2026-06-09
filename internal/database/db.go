@@ -16,7 +16,7 @@ func InitDB() {
 		log.Fatal("Falha ao conectar ao banco de dados: ", err)
 	}
 
-	err = DB.AutoMigrate(&models.Corrida{}, &models.Gasto{})
+	err = DB.AutoMigrate(&models.Corrida{}, &models.Gasto{}, &models.Usuario{})
 	if err != nil {
 		log.Fatal("Falha ao executar migration: ", err)
 	}
