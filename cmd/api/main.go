@@ -18,6 +18,7 @@ func main() {
 	v1 := r.Group("/api/v1")
 	{
 		v1.POST("/corridas", handlers.PostCorrida)
+		v1.GET("/resumo_diario", handlers.GetResumoDiario)
 	}
 
 	log.Println("Enaile Drive rodando em http://localhost:8080")

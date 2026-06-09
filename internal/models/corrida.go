@@ -11,7 +11,8 @@ type Corrida struct {
 	DistanciaPercorrida float64 `json:"distancia_km"`
 	DuracaoMinutos       int     `json:"duracao_min"`
 	HorarioCorrida      string  `json:"horario_corrida"` 
-	Plataforma          string  `json:"plataforma"`      
+	Plataforma          string  `json:"plataforma"`  
+	DataCustomizada     string  `json:"data_customizada" gorm:"-"`    
 }
 
 type Gasto struct {
