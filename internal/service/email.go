@@ -3,16 +3,20 @@ package service
 import (
 	"fmt"
 	"net/smtp"
+	"os" // 🔥 ADICIONADO: Pacote nativo do Go para ler variáveis do sistema (.env)
 )
 
-func EnviarEmailConfirmacao(emailDestino, nomeUsuario, token string) error{
+func EnviarEmailConfirmacao(emailDestino, nomeUsuario, token string) error {
 	from := "no-reply@enailedrive.com.br"
 	host := "sandbox.smtp.mailtrap.io"
 	port := "2525"
-	usuarioMailtrap := "2ad86fb41c6ef3"
-	senhaMailtrap := "f14f3f17c93d84"
 
-	linkAtivacao := fmt.Sprintf("htpp://localhost:800/api/v1/usuarios/confirmar?token=%s", token)
+	// 🔥 ALTERADO: Agora o Go não usa texto chumbado, ele pega direto do seu arquivo .env protegido
+	usuarioMailtrap := os.Getenv("MAILTRAP_USER")
+	senhaMailtrap := os.Getenv("MAILTRAP_PASSWORD")
+
+	// 💡 Dica extra: Corrigido o "htpp" para "http" e a porta 800 para 8080 para o link do botão funcionar depois!
+	linkAtivacao := fmt.Sprintf("http://localhost:8080/api/v1/usuarios/confirmar?token=%s", token)
 
 	assunto := "Subject: Enaile Drive - Confirme seu Cadastro! 🚗\n"
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"

@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Chave secreta interna para assinar os tokens digitais (crachás) do sistema
+
 var jwtKey = []byte("sua_chave_secreta_super_segura_enaile_2026")
 
 func gerarToken() string {
@@ -39,7 +39,7 @@ func CadastroUsuario(c *gin.Context) {
 	senhaCriptografada, err := bcrypt.GenerateFromPassword([]byte(novoUsuario.Senha), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao processar a senha."})
-		return // <-- Ajustado: Interrompe a execução caso dê erro
+		return 
 	}
 	novoUsuario.Senha = string(senhaCriptografada)
 
@@ -55,7 +55,11 @@ func CadastroUsuario(c *gin.Context) {
 		return
 	}
 
-	_ = service.EnviarEmailConfirmacao(novoUsuario.Email, novoUsuario.Nome, novoUsuario.TokenAV)
+	// 🔥 ALTERADO: Captura o erro do e-mail e exibe no terminal do servidor
+	errEmail := service.EnviarEmailConfirmacao(novoUsuario.Email, novoUsuario.Nome, novoUsuario.TokenAV)
+	if errEmail != nil {
+		fmt.Println("❌ ERRO NO ENVIO DE EMAIL:", errEmail)
+	}
 
 	novoUsuario.Senha = "****"
 	c.JSON(http.StatusCreated, gin.H{
@@ -100,7 +104,6 @@ func ConfirmarCadastro(c *gin.Context) {
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlSucesso))
 }
 
-// LoginUsuario autentica o motorista e devolve o Token JWT
 func LoginUsuario(c *gin.Context) {
 	var dadosLogin struct {
 		Email string `json:"email" binding:"required"`
@@ -123,13 +126,11 @@ func LoginUsuario(c *gin.Context) {
 		return
 	}
 
-	// Compara o hash do banco com a senha em texto puro enviada no login
 	if err := bcrypt.CompareHashAndPassword([]byte(usuario.Senha), []byte(dadosLogin.Senha)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "E-mail ou senha incorretos"})
 		return
 	}
 
-	// Se as credenciais estiverem certas, gera o Token JWT válido por 24 horas
 	expirationTime := time.Now().Add(24 * time.Hour)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"usuario_id": usuario.ID,
