@@ -8,13 +8,12 @@ import (
 
 	"github.com/elton-santos/enaile-drive/internal/database"
 	"github.com/elton-santos/enaile-drive/internal/models"
-	"github.com/elton-santos/enaile-drive/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-
+// Chave secreta interna para assinar os tokens digitais (crachás) do sistema
 var jwtKey = []byte("sua_chave_secreta_super_segura_enaile_2026")
 
 func gerarToken() string {
@@ -35,7 +34,7 @@ func CadastroUsuario(c *gin.Context) {
 		return
 	}
 
-	// Criptografa a senha antes de salvar no banco
+	// Criptografa a senha antes de salvar no banco para segurança do motorista
 	senhaCriptografada, err := bcrypt.GenerateFromPassword([]byte(novoUsuario.Senha), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao processar a senha."})
@@ -43,9 +42,11 @@ func CadastroUsuario(c *gin.Context) {
 	}
 	novoUsuario.Senha = string(senhaCriptografada)
 
-	novoUsuario.TokenAV = gerarToken()
-	novoUsuario.Ativo = false
+	// 🔥 CONTA ATIVA IMEDIATAMENTE: Sem tokens temporários ou bloqueios por e-mail
+	novoUsuario.TokenAV = ""
+	novoUsuario.Ativo = true
 
+	// Insere os dados diretamente no banco de dados SQLite
 	result := database.DB.Create(&novoUsuario)
 	if result.Error != nil {
 		c.JSON(http.StatusConflict, gin.H{
@@ -55,20 +56,17 @@ func CadastroUsuario(c *gin.Context) {
 		return
 	}
 
-	// 🔥 ALTERADO: Captura o erro do e-mail e exibe no terminal do servidor
-	errEmail := service.EnviarEmailConfirmacao(novoUsuario.Email, novoUsuario.Nome, novoUsuario.TokenAV)
-	if errEmail != nil {
-		fmt.Println("❌ ERRO NO ENVIO DE EMAIL:", errEmail)
-	}
+	// ✨ O rastreador de erros e a chamada de envio de e-mail foram totalmente removidos daqui!
 
 	novoUsuario.Senha = "****"
 	c.JSON(http.StatusCreated, gin.H{
 		"status":   "sucesso",
-		"mensagem": "Cadastro realizado com sucesso. Verifique seu email para ativar sua conta.",
+		"mensagem": "Cadastro realizado com sucesso! Sua conta já está ativa e pronta para uso.",
 		"usuario":  novoUsuario,
 	})
 }
 
+// ConfirmarCadastro (Mantido apenas por compatibilidade com a rota atual do main.go)
 func ConfirmarCadastro(c *gin.Context) {
 	tokenFiltro := c.Query("token")
 
@@ -89,21 +87,22 @@ func ConfirmarCadastro(c *gin.Context) {
 	database.DB.Save(&usuario)
 
 	htmlSucesso := fmt.Sprintf(`
-    <html>
-        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; color: #333;">
-            <div style="max-width: 500px; margin: 0 auto; border: 1px solid #e0e0e0; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <h1 style="color: #25d366;">✓ Conta Ativada com Sucesso!</h1>
-                <p style="font-size: 18px; margin: 20px 0;">Olá, <strong>%s</strong>!</p>
-                <p>Sua conta no <strong>Enaile Drive</strong> está confirmada e liberada.</p>
-                <p>Você já pode fechar esta aba e começar a cadastrar suas corridas.</p>
-            </div>
-        </body>
-    </html>
-    `, usuario.Nome)
+	<html>
+		<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; color: #333;">
+			<div style="max-width: 500px; margin: 0 auto; border: 1px solid #e0e0e0; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+				<h1 style="color: #25d366;">✓ Conta Ativada com Sucesso!</h1>
+				<p style="font-size: 18px; margin: 20px 0;">Olá, <strong>%s</strong>!</p>
+				<p>Sua conta no <strong>Enaile Drive</strong> está confirmada e liberada.</p>
+				<p>Você já pode fechar esta aba e começar a cadastrar suas corridas.</p>
+			</div>
+		</body>
+	</html>
+	`, usuario.Nome)
 
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlSucesso))
 }
 
+// LoginUsuario autentica o motorista e devolve o Token JWT
 func LoginUsuario(c *gin.Context) {
 	var dadosLogin struct {
 		Email string `json:"email" binding:"required"`
@@ -121,6 +120,7 @@ func LoginUsuario(c *gin.Context) {
 		return
 	}
 
+	// Como o usuário já nasce ativo, essa barreira sempre vai deixar passar
 	if !usuario.Ativo {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Sua conta ainda não foi ativada. Verifique seu e-mail!"})
 		return
