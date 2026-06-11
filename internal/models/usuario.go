@@ -8,6 +8,7 @@ type Usuario struct {
 	Email    string `json:"email" binding:"required,email" gorm:"uniqueIndex"`
 	Telefone string `json:"telefone" binding:"required,e164" gorm:"uniqueIndex"`
 	Senha    string `json:"senha" binding:"required,min=6"`
+	Veiculo  string `json:"veiculo" binding:"required"`
 	Ativo    bool   `json:"ativo" gorm:"default:false"`
 	TokenAV  string `json:"token_av"` 
 }

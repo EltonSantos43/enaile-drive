@@ -35,7 +35,7 @@ func PostCorrida(c *gin.Context) {
 }
 
 func GetResumoDiario(c *gin.Context) {
-	UsuarioID := 1
+	usuarioID := 1
 
 	dataFiltro := c.Query("data")
 	if dataFiltro == "" {
@@ -43,8 +43,7 @@ func GetResumoDiario(c *gin.Context) {
 	}
 
 	var corridas []models.Corrida
-
-	database.DB.Where("usuario_id = ? AND DATE(created_at) = ?", UsuarioID, dataFiltro).Find(&corridas)
+	database.DB.Where("usuario_id = ? AND DATE(created_at) = ?", usuarioID, dataFiltro).Find(&corridas)
 
 	var ganhosHoje float64
 	for _, corrida := range corridas {
@@ -53,11 +52,22 @@ func GetResumoDiario(c *gin.Context) {
 
 	totalCorridas := len(corridas)
 
+	var gastos []models.Gasto
+	database.DB.Where("usuario_id = ? AND DATE(created_at) = ?", usuarioID, dataFiltro).Find(&gastos)
+
+	var gastosHoje float64
+	for _, gasto := range gastos {
+		gastosHoje += gasto.Valor
+	}
+
+	lucroDiario := ganhosHoje - gastosHoje
+
+
 	c.JSON(http.StatusOK, gin.H{
 		"data": dataFiltro,
 		"ganhos_hoje": ganhosHoje,
-		"gastos_hoje": 0.0,
-		"lucros_diario": ganhosHoje,
+		"gastos_hoje": gastosHoje,
+		"lucros_diario": lucroDiario,
 		"total_corridas": totalCorridas,
 	})
 }
