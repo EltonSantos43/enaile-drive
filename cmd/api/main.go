@@ -3,17 +3,21 @@ package main
 import (
 	"github.com/elton-santos/enaile-drive/internal/database"
 	"github.com/elton-santos/enaile-drive/internal/handlers"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"log"
 )
 
 func main() {
+
 	_ = godotenv.Load()
 
 	database.InitDB()
 
 	r := gin.Default()
+
+	r.Use(cors.Default())
 
 	v1 := r.Group("/api/v1")
 	{
