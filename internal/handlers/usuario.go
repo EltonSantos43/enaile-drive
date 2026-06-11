@@ -56,8 +56,6 @@ func CadastroUsuario(c *gin.Context) {
 		return
 	}
 
-	// ✨ O rastreador de erros e a chamada de envio de e-mail foram totalmente removidos daqui!
-
 	novoUsuario.Senha = "****"
 	c.JSON(http.StatusCreated, gin.H{
 		"status":   "sucesso",
@@ -120,7 +118,6 @@ func LoginUsuario(c *gin.Context) {
 		return
 	}
 
-	// Como o usuário já nasce ativo, essa barreira sempre vai deixar passar
 	if !usuario.Ativo {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Sua conta ainda não foi ativada. Verifique seu e-mail!"})
 		return
@@ -131,9 +128,11 @@ func LoginUsuario(c *gin.Context) {
 		return
 	}
 
+	// 🔥 CONFIGURADO: Agora adicionamos o campo "veiculo" nas claims do Token JWT
 	expirationTime := time.Now().Add(24 * time.Hour)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"usuario_id": usuario.ID,
+		"veiculo":    usuario.Veiculo, 
 		"exp":        expirationTime.Unix(),
 	})
 
@@ -150,5 +149,35 @@ func LoginUsuario(c *gin.Context) {
 			"nome":    usuario.Nome,
 			"veiculo": usuario.Veiculo,
 		},
+	})
+}
+
+
+func AtualizarVeiculo(c *gin.Context) {
+	idDoToken, _ := c.Get("usuario_id")
+	usuarioID := idDoToken.(uint)
+
+	var dados struct {
+		Veiculo string `json:"veiculo" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&dados); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "O campo veiculo é obrigatório"})
+		return
+	}
+
+	var usuario models.Usuario
+	if err := database.DB.First(&usuario, usuarioID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Usuário não encontrado"})
+		return
+	}
+
+	usuario.Veiculo = dados.Veiculo
+	database.DB.Save(&usuario)
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":   "sucesso",
+		"mensagem": "Veículo atualizado com sucesso!",
+		"veiculo":  usuario.Veiculo,
 	})
 }
