@@ -4,12 +4,18 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/elton-santos/enaile-drive/internal/database"
 	"github.com/elton-santos/enaile-drive/internal/models"
 	"github.com/elton-santos/enaile-drive/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
+
+// Chave secreta interna para assinar os tokens digitais (crachás) do sistema
+var jwtKey = []byte("sua_chave_secreta_super_segura_enaile_2026")
 
 func gerarToken() string {
 	b := make([]byte, 4)
@@ -28,6 +34,14 @@ func CadastroUsuario(c *gin.Context) {
 		})
 		return
 	}
+
+	// Criptografa a senha antes de salvar no banco
+	senhaCriptografada, err := bcrypt.GenerateFromPassword([]byte(novoUsuario.Senha), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao processar a senha."})
+		return // <-- Ajustado: Interrompe a execução caso dê erro
+	}
+	novoUsuario.Senha = string(senhaCriptografada)
 
 	novoUsuario.TokenAV = gerarToken()
 	novoUsuario.Ativo = false
@@ -49,7 +63,7 @@ func CadastroUsuario(c *gin.Context) {
 		"mensagem": "Cadastro realizado com sucesso. Verifique seu email para ativar sua conta.",
 		"usuario":  novoUsuario,
 	})
-} // <-- CORRIGIDO: Agora fechamos a função CadastroUsuario corretamente!
+}
 
 func ConfirmarCadastro(c *gin.Context) {
 	tokenFiltro := c.Query("token")
@@ -59,7 +73,6 @@ func ConfirmarCadastro(c *gin.Context) {
 		return
 	}
 
-	// CORRIGIDO: Criamos a variável e buscamos o usuário dono do token no banco de dados
 	var usuario models.Usuario
 	result := database.DB.Where("token_av = ?", tokenFiltro).First(&usuario)
 	if result.Error != nil {
@@ -68,7 +81,7 @@ func ConfirmarCadastro(c *gin.Context) {
 	}
 
 	usuario.Ativo = true
-	usuario.TokenAV = "" // Limpa o token por segurança
+	usuario.TokenAV = "" 
 	database.DB.Save(&usuario)
 
 	htmlSucesso := fmt.Sprintf(`
@@ -85,4 +98,56 @@ func ConfirmarCadastro(c *gin.Context) {
     `, usuario.Nome)
 
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlSucesso))
+}
+
+// LoginUsuario autentica o motorista e devolve o Token JWT
+func LoginUsuario(c *gin.Context) {
+	var dadosLogin struct {
+		Email string `json:"email" binding:"required"`
+		Senha string `json:"senha" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&dadosLogin); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "E-mail e senha são obrigatórios"})
+		return
+	}
+
+	var usuario models.Usuario
+	if err := database.DB.Where("email = ?", dadosLogin.Email).First(&usuario).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "E-mail ou senha incorretos"})
+		return
+	}
+
+	if !usuario.Ativo {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Sua conta ainda não foi ativada. Verifique seu e-mail!"})
+		return
+	}
+
+	// Compara o hash do banco com a senha em texto puro enviada no login
+	if err := bcrypt.CompareHashAndPassword([]byte(usuario.Senha), []byte(dadosLogin.Senha)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "E-mail ou senha incorretos"})
+		return
+	}
+
+	// Se as credenciais estiverem certas, gera o Token JWT válido por 24 horas
+	expirationTime := time.Now().Add(24 * time.Hour)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"usuario_id": usuario.ID,
+		"exp":        expirationTime.Unix(),
+	})
+
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao gerar o token de acesso"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"token": tokenString,
+		"usuario": gin.H{
+			"id":      usuario.ID,
+			"nome":    usuario.Nome,
+			"veiculo": usuario.Veiculo,
+		},
+	})
 }

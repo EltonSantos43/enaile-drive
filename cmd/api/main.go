@@ -22,6 +22,7 @@ func main() {
 		v1.POST("/usuarios", handlers.CadastroUsuario)
 		v1.GET("/usuarios/confirmar", handlers.ConfirmarCadastro)
 		v1.POST("/gastos", handlers.PostGasto)
+		v1.POST("/login", handlers.LoginUsuario)
 	}
 
 	log.Println("Enaile Drive rodando em http://localhost:8080")
