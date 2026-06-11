@@ -14,10 +14,3 @@ type Corrida struct {
 	Plataforma          string  `json:"plataforma"`  
 	DataCustomizada     string  `json:"data_customizada" gorm:"-"`    
 }
-
-type Gasto struct {
-	gorm.Model
-	UsuarioID uint    `json:"usuario_id"`
-	Descricao string  `json:"descricao"` 
-	Valor     float64 `json:"valor"`
-}
